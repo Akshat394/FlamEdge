@@ -61,7 +61,7 @@ android {
 
     packaging {
         resources {
-            excludes += setOf(
+            excludes.addAll(
                 "META-INF/DEPENDENCIES",
                 "META-INF/LICENSE",
                 "META-INF/LICENSE.txt",
