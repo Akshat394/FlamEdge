@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
+// Read OpenCV_DIR from local.properties
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+val opencvDir: String? = localProperties.getProperty("OpenCV_DIR")?.replace("\n", "")?.replace("\r", "")
 android {
     namespace = "com.edgeviewer.app"
     compileSdk = 34
@@ -17,11 +26,14 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags += ""
+                if (opencvDir != null) {
+                    arguments.add("-DOpenCV_DIR=$opencvDir")
+                }
             }
         }
 
         ndk {
-            abiFilters.addAll(["arm64-v8a", "armeabi-v7a"])
+            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
         }
 
         vectorDrawables {
@@ -31,7 +43,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled = false
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -56,20 +68,24 @@ android {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
+            arguments -DOpenCV_DIR= "$opencvDir E:\opencv-4.9.0-android-sdk\OpenCV-android-sdk\sdk\native\jni"
+        }
         }
     }
 
     packaging {
         resources {
             excludes.addAll(
-                "META-INF/DEPENDENCIES",
-                "META-INF/LICENSE",
-                "META-INF/LICENSE.txt",
-                "META-INF/license.txt",
-                "META-INF/NOTICE",
-                "META-INF/NOTICE.txt",
-                "META-INF/notice.txt",
-                "META-INF/ASL2.0"
+                setOf(
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/LICENSE",
+                    "META-INF/LICENSE.txt",
+                    "META-INF/license.txt",
+                    "META-INF/NOTICE",
+                    "META-INF/NOTICE.txt",
+                    "META-INF/notice.txt",
+                    "META-INF/ASL2.0"
+                )
             )
         }
     }
@@ -77,6 +93,7 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
@@ -88,4 +105,3 @@ dependencies {
     // Optional logging
     implementation("com.jakewharton.timber:timber:5.0.1")
 }
-
