@@ -68,7 +68,6 @@ android {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
-            arguments.add("-DOpenCV_DIR=E:/opencv-4.9.0-android-sdk/OpenCV-android-sdk/sdk/native/jni")
         }
     }
 
