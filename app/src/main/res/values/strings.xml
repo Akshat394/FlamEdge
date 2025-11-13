@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FlamEdge</string>
+    <string name="camera_permission_rationale">Camera access is required to capture frames.</string>
+    <string name="toggle_processed">Toggle Processed</string>
+    <string name="fps_label">FPS: %1$.1f</string>
+    <string name="switch_camera">Switch Camera</string>
+    <string name="export_frame">Export Frame</string>
+    <string name="cycle_filter">Cycle Filter</string>
+</resources>
+
