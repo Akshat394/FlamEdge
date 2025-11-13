@@ -1,0 +1,17 @@
+{
+  "name": "edge-viewer-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc && npm run copy-static",
+    "copy-static": "copyfiles -u 1 src/index.html src/styles.css dist",
+    "start": "npx http-server dist",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "copyfiles": "^2.4.1",
+    "http-server": "^14.1.1",
+    "typescript": "^5.2.2"
+  }
+}
+
