@@ -1,0 +1,29 @@
+# Android
+*.iml
+.gradle
+/local.properties
+/.idea
+/.cxx
+/app/build
+/build
+
+# Gradle
+.gradle/
+
+# NDK / CMake
+**/cmake-build-*/
+
+# VS Code / IntelliJ
+.vscode/
+*.swp
+
+# Node
+node_modules/
+web/node_modules/
+web/dist/
+package-lock.json
+
+# Mac / Windows
+.DS_Store
+Thumbs.db
+
