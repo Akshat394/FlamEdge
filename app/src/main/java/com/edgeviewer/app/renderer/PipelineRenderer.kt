@@ -73,6 +73,12 @@ class PipelineRenderer(
 
     data class RgbaFrame(val data: ByteArray, val width: Int, val height: Int)
 
+    private var frameConsumer: ((ByteArray, Int, Int) -> Unit)? = null
+
+    fun setFrameConsumer(consumer: ((ByteArray, Int, Int) -> Unit)?) {
+        frameConsumer = consumer
+    }
+
     fun snapshot(): RgbaFrame? {
         val (w, h, buf) = synchronized(rgbaBufferLock) {
             Triple(frameWidth, frameHeight, rgbaBuffer?.duplicate())
@@ -160,6 +166,25 @@ class PipelineRenderer(
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
 
+        // Provide the current RGBA frame to consumer (e.g., HTTP server)
+        frameConsumer?.let { consumer ->
+            val w = frameWidth
+            val h = frameHeight
+            if (w > 0 && h > 0) {
+                val src = synchronized(rgbaBufferLock) { rgbaBuffer?.duplicate() }
+                if (src != null) {
+                    try {
+                        val arr = ByteArray(w * h * 4)
+                        src.position(0)
+                        src.get(arr)
+                        consumer(arr, w, h)
+                    } catch (e: Exception) {
+                        Timber.w(e, "Failed to provide RGBA frame to consumer")
+                    }
+                }
+            }
+        }
+
         GLES20.glDisableVertexAttribArray(positionHandle)
         GLES20.glDisableVertexAttribArray(texCoordHandle)
     }
@@ -199,6 +224,13 @@ class PipelineRenderer(
                 localBuffer = rgbaBuffer
             }
 
+            // If native library isn't loaded, skip processing gracefully
+            if (!NativeBridge.isLoaded()) {
+                Timber.w("Native library not loaded; skipping frame processing")
+                framePending.set(false)
+                return
+            }
+
             val duration = measureTimeMillis {
                 localBuffer?.let { out ->
                     try {
@@ -213,6 +245,10 @@ class PipelineRenderer(
                         synchronized(rgbaBufferLock) {
                             rgbaBuffer = out
                         }
+                    } catch (e: UnsatisfiedLinkError) {
+                        Timber.e(e, "Native library missing during processFrame")
+                        framePending.set(false)
+                        return
                     } catch (e: Exception) {
                         Timber.e(e, "Error processing frame")
                         framePending.set(false)
