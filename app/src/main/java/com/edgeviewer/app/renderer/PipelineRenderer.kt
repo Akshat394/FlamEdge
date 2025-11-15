@@ -165,52 +165,82 @@ class PipelineRenderer(
     }
 
     override fun onFrameAvailable(data: ByteBuffer, width: Int, height: Int) {
-        if (!showProcessed.get()) {
-            return
-        }
-
-        if (!framePending.compareAndSet(false, true)) return
-
-        val rgbaCapacity = width * height * 4
-        var localBuffer: ByteBuffer?
-
-        synchronized(rgbaBufferLock) {
-            if (rgbaBuffer == null || rgbaBuffer!!.capacity() != rgbaCapacity) {
-                rgbaBuffer = ByteBuffer.allocateDirect(rgbaCapacity)
+        try {
+            if (!showProcessed.get()) {
+                return
             }
-            if (frameWidth != width || frameHeight != height) {
-                frameWidth = width
-                frameHeight = height
-                textureInitialized = false
-            }
-            localBuffer = rgbaBuffer
-        }
 
-        val duration = measureTimeMillis {
-            localBuffer?.let { out ->
-                out.position(0)
-                val success = NativeBridge.processFrame(data, width, height, out)
-                if (!success) {
-                    Timber.w("Native processing failed")
+            if (!framePending.compareAndSet(false, true)) return
+
+            if (width <= 0 || height <= 0) {
+                Timber.w("Invalid frame dimensions: ${width}x${height}")
+                framePending.set(false)
+                return
+            }
+
+            val rgbaCapacity = width * height * 4
+            if (rgbaCapacity <= 0) {
+                Timber.w("Invalid buffer capacity: $rgbaCapacity")
+                framePending.set(false)
+                return
+            }
+
+            var localBuffer: ByteBuffer?
+
+            synchronized(rgbaBufferLock) {
+                if (rgbaBuffer == null || rgbaBuffer!!.capacity() != rgbaCapacity) {
+                    rgbaBuffer = ByteBuffer.allocateDirect(rgbaCapacity)
+                }
+                if (frameWidth != width || frameHeight != height) {
+                    frameWidth = width
+                    frameHeight = height
+                    textureInitialized = false
+                }
+                localBuffer = rgbaBuffer
+            }
+
+            val duration = measureTimeMillis {
+                localBuffer?.let { out ->
+                    try {
+                        out.position(0)
+                        val success = NativeBridge.processFrame(data, width, height, out)
+                        if (!success) {
+                            Timber.w("Native processing failed")
+                            framePending.set(false)
+                            return
+                        }
+                        out.position(0)
+                        synchronized(rgbaBufferLock) {
+                            rgbaBuffer = out
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error processing frame")
+                        framePending.set(false)
+                        return
+                    }
+                } ?: run {
+                    Timber.w("Local buffer is null")
                     framePending.set(false)
                     return
                 }
-                out.position(0)
-                synchronized(rgbaBufferLock) {
-                    rgbaBuffer = out
+            }
+
+            val now = System.nanoTime()
+            if (lastTimestamp != 0L) {
+                val timeDiff = now - lastTimestamp
+                if (timeDiff > 0) {
+                    val fps = 1e9 / timeDiff.toDouble()
+                    fpsUpdate(fps.coerceIn(0.0, 120.0)) // Cap FPS at reasonable value
                 }
             }
-        }
+            lastTimestamp = now
 
-        val now = System.nanoTime()
-        if (lastTimestamp != 0L) {
-            val fps = 1e9 / (now - lastTimestamp).toDouble()
-            fpsUpdate(fps)
+            surfaceView.requestRender()
+            framePending.set(false)
+        } catch (e: Exception) {
+            Timber.e(e, "Critical error in onFrameAvailable")
+            framePending.set(false)
         }
-        lastTimestamp = now
-
-        surfaceView.requestRender()
-        framePending.set(false)
     }
 
     companion object {
