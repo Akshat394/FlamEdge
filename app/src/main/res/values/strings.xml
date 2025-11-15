@@ -1,11 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">FlamEdge</string>
-    <string name="camera_permission_rationale">Camera access is required to capture frames.</string>
-    <string name="toggle_processed">Toggle Processed</string>
+    <string name="camera_permission_rationale">Camera access is required to capture and process frames for edge detection.</string>
+    <string name="toggle_processed">Toggle View</string>
+    <string name="toggle_processed_hint">Switch between raw camera and edge detection view</string>
     <string name="fps_label">FPS: %1$.1f</string>
     <string name="switch_camera">Switch Camera</string>
-    <string name="export_frame">Export Frame</string>
-    <string name="cycle_filter">Cycle Filter</string>
+    <string name="switch_camera_hint">Switch between front and back camera</string>
+    <string name="export_frame">Save Frame</string>
+    <string name="export_frame_hint">Save current processed frame to gallery</string>
+    <string name="cycle_filter">Filter</string>
+    <string name="cycle_filter_hint">Apply different visual filters</string>
+    <string name="status_initializing">Initializing camera…</string>
+    <string name="status_ready">Camera ready</string>
+    <string name="status_error">Camera error occurred</string>
+    <string name="status_permission_denied">Camera permission required</string>
+    <string name="processing">Processing…</string>
+    <string name="saved">Frame saved successfully</string>
+    <string name="save_failed">Failed to save frame</string>
+    <string name="raw_view">Raw Camera</string>
+    <string name="processed_view">Edge Detection</string>
+    <string name="filter_none">No Filter</string>
+    <string name="filter_invert">Invert</string>
+    <string name="filter_threshold">Threshold</string>
 </resources>
 
