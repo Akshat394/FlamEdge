@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Unified button styles for consistent look and spacing -->
+    <style name="EdgeButton.Filled" parent="Widget.Material3.Button">
+        <item name="android:layout_height">56dp</item>
+        <item name="cornerRadius">28dp</item>
+        <item name="backgroundTint">@color/primary_blue</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="iconTint">@color/text_primary</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="iconPadding">8dp</item>
+    </style>
+
+    <style name="EdgeButton.OutlinedBlue" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:layout_height">56dp</item>
+        <item name="cornerRadius">28dp</item>
+        <item name="strokeColor">@color/primary_blue</item>
+        <item name="backgroundTint">@color/button_background</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="iconTint">@color/text_primary</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="iconPadding">8dp</item>
+    </style>
+
+    <style name="EdgeButton.OutlinedOrange" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:layout_height">56dp</item>
+        <item name="cornerRadius">28dp</item>
+        <item name="strokeColor">@color/accent_orange</item>
+        <item name="backgroundTint">@color/button_background</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="iconTint">@color/text_primary</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="iconPadding">8dp</item>
+    </style>
+
+    <style name="EdgeButton.FilledGreen" parent="Widget.Material3.Button">
+        <item name="android:layout_height">56dp</item>
+        <item name="cornerRadius">28dp</item>
+        <item name="backgroundTint">@color/accent_green</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="iconTint">@color/text_primary</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="iconPadding">8dp</item>
+    </style>
+
+</resources>
