@@ -11,15 +11,16 @@ val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
-val opencvDir: String? = localProperties.getProperty("OpenCV_DIR")?.replace("\n", "")?.replace("\r", "")
+val opencvDir: String? = localProperties.getProperty("OpenCV_DIR")?.replace("\n", "")?.replace("\r", "")?.replace("\\", "/")?.trim()
 android {
     namespace = "com.edgeviewer.app"
-    compileSdk = 34
+    compileSdk = 35
+    ndkVersion = "25.1.8937393"
 
     defaultConfig {
         applicationId = "com.edgeviewer.app"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -42,6 +43,10 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            isDebuggable = true
+            isMinifyEnabled = false
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
