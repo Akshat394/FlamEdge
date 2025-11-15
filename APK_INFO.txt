@@ -1,0 +1,16 @@
+﻿APK Information
+===============
+File Name: app-debug.apk
+Full Path: E:\Flam Assignment\edge-viewer\app\build\outputs\apk\debug\app-debug.apk
+Size: 13.13 MB (13762724 bytes)
+Created: 11/15/2025 13:29:57
+Modified: 11/15/2025 13:29:57
+
+Compatibility:
+- Android 7.0+ (API 24+)
+- Android 14 (API 34) ✓
+- ARM64 and ARM devices
+- Debug build (for testing)
+
+Installation:
+See INSTALL_ON_DEVICE.md for detailed instructions
