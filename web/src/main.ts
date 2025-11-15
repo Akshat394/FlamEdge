@@ -1,24 +1,65 @@
-const frameElement = document.getElementById("processedFrame") as HTMLImageElement;
-const statsElement = document.getElementById("stats") as HTMLElement;
+const processedImgEl = document.getElementById("processedFrame") as HTMLImageElement | null;
+const statsEl = document.getElementById("stats") as HTMLElement | null;
 
-const metadata = {
-  fps: 18.5,
-  resolution: "640x480",
-  timestamp: new Date().toISOString()
-};
+const params = new URLSearchParams(window.location.search);
+const frameUrlParam = params.get("url");
+const FRAME_URL = frameUrlParam ?? "http://localhost:8080/frame";
 
-function loadFrame(): void {
-  import("./assets/sampleFrame").then(({ default: frameData }) => {
-    frameElement.src = frameData;
-    updateStats(metadata);
-  }).catch((error) => {
-    console.error("Failed to load sample frame", error);
-  });
+function updateStatsText(text: string): void {
+  if (statsEl) {
+    statsEl.textContent = text;
+  }
 }
 
-function updateStats(data: typeof metadata): void {
-  statsElement.textContent = `FPS: ${data.fps.toFixed(1)} | Resolution: ${data.resolution} | Captured: ${data.timestamp}`;
+function refreshFrame(): void {
+  if (!processedImgEl) {
+    console.warn("Processed image element not found");
+    return;
+  }
+  const ts = Date.now();
+  processedImgEl.src = `${FRAME_URL}?t=${ts}`;
+  updateStatsText(`Source: ${FRAME_URL} | Updated: ${new Date(ts).toLocaleTimeString()}`);
 }
 
-loadFrame();
+if (processedImgEl) {
+  processedImgEl.crossOrigin = "anonymous";
+  processedImgEl.onerror = () => {
+    updateStatsText("Failed to load frame. Set ?url=http://<device-ip>:8080/frame");
+    stopPolling();
+    import("./assets/sampleFrame.js").then(({ default: frameData }) => {
+      processedImgEl.src = frameData;
+      updateStatsText("Showing sample image. Provide ?url to connect to device.");
+    }).catch(() => {
+      // ignore
+    });
+  };
+}
+
+refreshFrame();
+
+let intervalId: number | undefined;
+function startPolling() {
+  intervalId = window.setInterval(() => {
+    if (document.visibilityState === "visible") {
+      refreshFrame();
+    }
+  }, 1000);
+}
+
+function stopPolling() {
+  if (intervalId) {
+    window.clearInterval(intervalId);
+    intervalId = undefined;
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    startPolling();
+  } else {
+    stopPolling();
+  }
+});
+
+startPolling();
 
