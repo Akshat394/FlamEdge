@@ -252,6 +252,7 @@ class CameraController(
 
     fun switchCamera(textureView: TextureView) {
         try {
+            // Determine the target camera ID based on current facing
             val targetId = when (currentCameraId) {
                 selectBackCamera() -> selectFrontCamera() ?: currentCameraId
                 selectFrontCamera() -> selectBackCamera() ?: currentCameraId
@@ -259,41 +260,83 @@ class CameraController(
             }
             targetId ?: return
 
+            // Fetch characteristics and supported sizes for the target camera
+            val characteristics = try {
+                cameraManager.getCameraCharacteristics(targetId)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to get characteristics for target camera")
+                return
+            }
+
+            val streamConfigs = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+                ?: run {
+                    Timber.e("No stream configuration map available for target camera")
+                    return
+                }
+
+            val outputSizes = streamConfigs.getOutputSizes(ImageFormat.YUV_420_888)
+            if (outputSizes == null || outputSizes.isEmpty()) {
+                Timber.e("No supported YUV_420_888 sizes for target camera")
+                return
+            }
+
+            // Choose the best matching size for the requested preview
+            val chosenSize = chooseOptimalSize(outputSizes.toList(), previewSize)
+
             // Clean up current session/device, but keep the background thread running for quicker switch
             captureSession?.close()
             captureSession = null
             cameraDevice?.close()
             cameraDevice = null
 
+            // Update current camera and size
             currentCameraId = targetId
+            currentSize = chosenSize
 
-            // Re-create ImageReader with the same size
+            // Ensure NV21 buffer has the correct capacity for the new size
+            val requiredCapacity = chosenSize.width * chosenSize.height * 3 / 2
+            if (requiredCapacity <= 0) {
+                Timber.e("Invalid buffer capacity during switch: $requiredCapacity")
+                return
+            }
+            if (nv21Buffer.capacity() != requiredCapacity) {
+                nv21Buffer = ByteBuffer.allocateDirect(requiredCapacity)
+            } else {
+                nv21Buffer.clear()
+            }
+
+            // Recreate ImageReader with the new size
             imageReader?.close()
             imageReader = android.media.ImageReader.newInstance(
-                currentSize.width,
-                currentSize.height,
+                chosenSize.width,
+                chosenSize.height,
                 ImageFormat.YUV_420_888,
                 3
             ).apply {
                 setOnImageAvailableListener({ reader ->
-                    reader.acquireLatestImage()?.use { image ->
-                        val nv21 = nv21Buffer
-                        nv21.position(0)
-                        YuvConverter.imageToNv21(image, nv21)
-                        listener.onFrameAvailable(nv21, image.width, image.height)
+                    try {
+                        reader.acquireLatestImage()?.use { image ->
+                            val nv21 = nv21Buffer
+                            nv21.position(0)
+                            YuvConverter.imageToNv21(image, nv21)
+                            listener.onFrameAvailable(nv21, image.width, image.height)
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error processing camera frame after switch")
                     }
                 }, backgroundHandler)
             }
 
             val surfaceTexture = textureView.surfaceTexture
             if (surfaceTexture != null) {
-                openCamera(targetId, surfaceTexture, currentSize)
+                // Ensure the preview buffer size matches the chosen camera output
+                openCamera(targetId, surfaceTexture, chosenSize)
             } else {
                 Timber.e("Surface texture is null when switching camera")
             }
         } catch (e: Exception) {
             Timber.e(e, "Error switching camera")
-            // Try to restore previous camera on failure
+            // Try to restore a clean state on failure
             try {
                 stop()
             } catch (e2: Exception) {
