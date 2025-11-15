@@ -95,6 +95,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
+        android:weightSum="4"
         android:padding="16dp"
         android:background="@drawable/bottom_controls_background"
         android:elevation="8dp"
@@ -105,62 +106,50 @@
         <!-- Switch Camera Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/switchCameraButton"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+            style="@style/EdgeButton.OutlinedBlue"
+            android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_marginEnd="8dp"
+            android:layout_weight="1"
             android:text="@string/switch_camera"
             android:textColor="@color/text_primary"
-            android:minWidth="100dp"
-            app:icon="@android:drawable/ic_menu_camera"
-            app:iconTint="@color/text_primary"
-            app:strokeColor="@color/primary_blue"
-            app:backgroundTint="@color/button_background"
-            app:cornerRadius="28dp" />
+            app:icon="@android:drawable/ic_menu_camera" />
 
         <!-- Toggle View Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/toggleButton"
-            style="@style/Widget.Material3.Button"
-            android:layout_width="wrap_content"
+            style="@style/EdgeButton.Filled"
+            android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
+            android:layout_weight="1"
             android:text="@string/toggle_processed"
-            android:textColor="@color/text_primary"
-            android:minWidth="120dp"
-            app:backgroundTint="@color/primary_blue"
-            app:cornerRadius="28dp" />
+            android:textColor="@color/text_primary" />
 
         <!-- Filter Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/filterButton"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+            style="@style/EdgeButton.OutlinedOrange"
+            android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
+            android:layout_weight="1"
             android:text="@string/cycle_filter"
             android:textColor="@color/text_primary"
-            android:minWidth="100dp"
-            app:icon="@android:drawable/ic_menu_view"
-            app:iconTint="@color/text_primary"
-            app:strokeColor="@color/accent_orange"
-            app:backgroundTint="@color/button_background"
-            app:cornerRadius="28dp" />
+            app:icon="@android:drawable/ic_menu_view" />
 
         <!-- Save Frame Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/exportButton"
-            style="@style/Widget.Material3.Button"
-            android:layout_width="56dp"
+            style="@style/EdgeButton.FilledGreen"
+            android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/export_frame"
             app:icon="@android:drawable/ic_menu_save"
-            app:iconTint="@color/text_primary"
-            app:iconGravity="textStart"
-            app:backgroundTint="@color/accent_green"
-            app:cornerRadius="28dp"
             android:contentDescription="@string/export_frame" />
 
     </LinearLayout>
