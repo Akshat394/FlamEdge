@@ -44,56 +44,113 @@ class CameraController(
     }
 
     fun start(textureView: TextureView) {
-        if (cameraDevice != null) return
-
-        startBackgroundThread()
-        val chosenCameraId = currentCameraId ?: (selectBackCamera() ?: return)
-        val characteristics = cameraManager.getCameraCharacteristics(chosenCameraId)
-        val streamConfigs = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-            ?: return
-
-        val chosenSize = chooseOptimalSize(
-            streamConfigs.getOutputSizes(ImageFormat.YUV_420_888).toList(),
-            previewSize
-        )
-
-        currentCameraId = chosenCameraId
-        currentSize = chosenSize
-
-        val requiredCapacity = chosenSize.width * chosenSize.height * 3 / 2
-        if (nv21Buffer.capacity() != requiredCapacity) {
-            nv21Buffer = ByteBuffer.allocateDirect(requiredCapacity)
-        } else {
-            nv21Buffer.clear()
-        }
-
-        imageReader = android.media.ImageReader.newInstance(
-            chosenSize.width,
-            chosenSize.height,
-            ImageFormat.YUV_420_888,
-            3
-        ).apply {
-            setOnImageAvailableListener({ reader ->
-                reader.acquireLatestImage()?.use { image ->
-                    val nv21 = nv21Buffer
-                    nv21.position(0)
-                    YuvConverter.imageToNv21(image, nv21)
-                    listener.onFrameAvailable(nv21, image.width, image.height)
+        synchronized(this) {
+            try {
+                if (cameraDevice != null) {
+                    Timber.d("Camera already started")
+                    return
                 }
-            }, backgroundHandler)
-        }
+                
+                if (backgroundThread == null || !backgroundThread!!.isAlive) {
+                    startBackgroundThread()
+                }
 
-        openCamera(chosenCameraId, textureView.surfaceTexture, chosenSize)
+                val chosenCameraId = currentCameraId ?: (selectBackCamera() ?: run {
+                    Timber.e("No camera available")
+                    throw IllegalStateException("No camera available")
+                })
+                
+                val characteristics = try {
+                    cameraManager.getCameraCharacteristics(chosenCameraId)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to get camera characteristics")
+                    throw IllegalStateException("Failed to get camera characteristics: ${e.message}", e)
+                }
+                
+                val streamConfigs = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+                    ?: run {
+                        Timber.e("No stream configuration map available")
+                        throw IllegalStateException("No stream configuration map available")
+                    }
+
+                val outputSizes = streamConfigs.getOutputSizes(ImageFormat.YUV_420_888)
+                if (outputSizes == null || outputSizes.isEmpty()) {
+                    Timber.e("No output sizes available")
+                    throw IllegalStateException("No supported output sizes available")
+                }
+
+                val chosenSize = chooseOptimalSize(
+                    outputSizes.toList(),
+                    previewSize
+                )
+
+                currentCameraId = chosenCameraId
+                currentSize = chosenSize
+
+                val requiredCapacity = chosenSize.width * chosenSize.height * 3 / 2
+                if (requiredCapacity <= 0) {
+                    Timber.e("Invalid buffer capacity: $requiredCapacity")
+                    throw IllegalStateException("Invalid buffer capacity")
+                }
+                
+                if (nv21Buffer.capacity() != requiredCapacity) {
+                    nv21Buffer = ByteBuffer.allocateDirect(requiredCapacity)
+                } else {
+                    nv21Buffer.clear()
+                }
+
+                imageReader?.close()
+                imageReader = android.media.ImageReader.newInstance(
+                    chosenSize.width,
+                    chosenSize.height,
+                    ImageFormat.YUV_420_888,
+                    3
+                ).apply {
+                    setOnImageAvailableListener({ reader ->
+                        try {
+                            reader.acquireLatestImage()?.use { image ->
+                                val nv21 = nv21Buffer
+                                nv21.position(0)
+                                YuvConverter.imageToNv21(image, nv21)
+                                listener.onFrameAvailable(nv21, image.width, image.height)
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "Error processing camera frame")
+                        }
+                    }, backgroundHandler)
+                }
+
+                val surfaceTexture = textureView.surfaceTexture
+                if (surfaceTexture != null) {
+                    openCamera(chosenCameraId, surfaceTexture, chosenSize)
+                } else {
+                    Timber.e("Surface texture is not available")
+                    throw IllegalStateException("Surface texture not available")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error starting camera")
+                try {
+                    stop()
+                } catch (stopError: Exception) {
+                    Timber.e(stopError, "Error stopping camera after start failure")
+                }
+                throw e
+            }
+        }
     }
 
     fun stop() {
-        captureSession?.close()
-        captureSession = null
-        cameraDevice?.close()
-        cameraDevice = null
-        imageReader?.close()
-        imageReader = null
-        stopBackgroundThread()
+        try {
+            captureSession?.close()
+            captureSession = null
+            cameraDevice?.close()
+            cameraDevice = null
+            imageReader?.close()
+            imageReader = null
+            stopBackgroundThread()
+        } catch (e: Exception) {
+            Timber.e(e, "Error stopping camera")
+        }
     }
 
     private fun chooseOptimalSize(choices: List<Size>, requested: Size): Size {
@@ -110,89 +167,139 @@ class CameraController(
         surfaceTexture: SurfaceTexture,
         size: Size
     ) {
-        surfaceTexture.setDefaultBufferSize(size.width, size.height)
-        cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
-            override fun onOpened(device: CameraDevice) {
-                cameraDevice = device
-                createSession(device, surfaceTexture)
-            }
+        try {
+            surfaceTexture.setDefaultBufferSize(size.width, size.height)
+            cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
+                override fun onOpened(device: CameraDevice) {
+                    try {
+                        cameraDevice = device
+                        createSession(device, surfaceTexture)
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error in onOpened")
+                        device.close()
+                        cameraDevice = null
+                    }
+                }
 
-            override fun onDisconnected(device: CameraDevice) {
-                Timber.w("Camera disconnected")
-                device.close()
-                cameraDevice = null
-            }
+                override fun onDisconnected(device: CameraDevice) {
+                    Timber.w("Camera disconnected")
+                    try {
+                        device.close()
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error closing disconnected camera")
+                    }
+                    cameraDevice = null
+                }
 
-            override fun onError(device: CameraDevice, error: Int) {
-                Timber.e("Camera error: $error")
-                device.close()
-                cameraDevice = null
-            }
-        }, backgroundHandler)
+                override fun onError(device: CameraDevice, error: Int) {
+                    Timber.e("Camera error: $error")
+                    try {
+                        device.close()
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error closing camera after error")
+                    }
+                    cameraDevice = null
+                }
+            }, backgroundHandler)
+        } catch (e: Exception) {
+            Timber.e(e, "Error opening camera")
+            cameraDevice = null
+        }
     }
 
     private fun createSession(device: CameraDevice, surfaceTexture: SurfaceTexture) {
-        val previewSurface = Surface(surfaceTexture)
-        val readerSurface = imageReader?.surface ?: return
+        try {
+            val previewSurface = Surface(surfaceTexture)
+            val readerSurface = imageReader?.surface ?: run {
+                Timber.e("ImageReader surface is null")
+                return
+            }
 
-        device.createCaptureSession(
-            listOf(previewSurface, readerSurface),
-            object : CameraCaptureSession.StateCallback() {
-                override fun onConfigured(session: CameraCaptureSession) {
-                    captureSession = session
-                    val builder = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
-                        addTarget(previewSurface)
-                        addTarget(readerSurface)
-                        set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
-                        set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
+            device.createCaptureSession(
+                listOf(previewSurface, readerSurface),
+                object : CameraCaptureSession.StateCallback() {
+                    override fun onConfigured(session: CameraCaptureSession) {
+                        try {
+                            captureSession = session
+                            val builder = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
+                                addTarget(previewSurface)
+                                addTarget(readerSurface)
+                                set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+                                set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
+                            }
+
+                            session.setRepeatingRequest(builder.build(), null, backgroundHandler)
+                        } catch (e: Exception) {
+                            Timber.e(e, "Error in onConfigured")
+                        }
                     }
 
-                    session.setRepeatingRequest(builder.build(), null, backgroundHandler)
-                }
-
-                override fun onConfigureFailed(session: CameraCaptureSession) {
-                    Timber.e("Capture session configuration failed")
-                }
-            },
-            backgroundHandler
-        )
+                    override fun onConfigureFailed(session: CameraCaptureSession) {
+                        Timber.e("Capture session configuration failed")
+                        try {
+                            session.close()
+                        } catch (e: Exception) {
+                            Timber.e(e, "Error closing failed session")
+                        }
+                    }
+                },
+                backgroundHandler
+            )
+        } catch (e: Exception) {
+            Timber.e(e, "Error creating capture session")
+        }
     }
 
     fun switchCamera(textureView: TextureView) {
-        val targetId = when (currentCameraId) {
-            selectBackCamera() -> selectFrontCamera() ?: currentCameraId
-            selectFrontCamera() -> selectBackCamera() ?: currentCameraId
-            else -> selectFrontCamera() ?: selectBackCamera()
+        try {
+            val targetId = when (currentCameraId) {
+                selectBackCamera() -> selectFrontCamera() ?: currentCameraId
+                selectFrontCamera() -> selectBackCamera() ?: currentCameraId
+                else -> selectFrontCamera() ?: selectBackCamera()
+            }
+            targetId ?: return
+
+            // Clean up current session/device, but keep the background thread running for quicker switch
+            captureSession?.close()
+            captureSession = null
+            cameraDevice?.close()
+            cameraDevice = null
+
+            currentCameraId = targetId
+
+            // Re-create ImageReader with the same size
+            imageReader?.close()
+            imageReader = android.media.ImageReader.newInstance(
+                currentSize.width,
+                currentSize.height,
+                ImageFormat.YUV_420_888,
+                3
+            ).apply {
+                setOnImageAvailableListener({ reader ->
+                    reader.acquireLatestImage()?.use { image ->
+                        val nv21 = nv21Buffer
+                        nv21.position(0)
+                        YuvConverter.imageToNv21(image, nv21)
+                        listener.onFrameAvailable(nv21, image.width, image.height)
+                    }
+                }, backgroundHandler)
+            }
+
+            val surfaceTexture = textureView.surfaceTexture
+            if (surfaceTexture != null) {
+                openCamera(targetId, surfaceTexture, currentSize)
+            } else {
+                Timber.e("Surface texture is null when switching camera")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error switching camera")
+            // Try to restore previous camera on failure
+            try {
+                stop()
+            } catch (e2: Exception) {
+                Timber.e(e2, "Error during cleanup after switch failure")
+            }
         }
-        targetId ?: return
-
-        // Clean up current session/device, but keep the background thread running for quicker switch
-        captureSession?.close()
-        captureSession = null
-        cameraDevice?.close()
-        cameraDevice = null
-
-        currentCameraId = targetId
-
-        // Re-create ImageReader with the same size
-        imageReader?.close()
-        imageReader = android.media.ImageReader.newInstance(
-            currentSize.width,
-            currentSize.height,
-            ImageFormat.YUV_420_888,
-            3
-        ).apply {
-            setOnImageAvailableListener({ reader ->
-                reader.acquireLatestImage()?.use { image ->
-                    val nv21 = nv21Buffer
-                    nv21.position(0)
-                    YuvConverter.imageToNv21(image, nv21)
-                    listener.onFrameAvailable(nv21, image.width, image.height)
-                }
-            }, backgroundHandler)
-        }
-
-        openCamera(targetId, textureView.surfaceTexture, currentSize)
     }
 
     private fun startBackgroundThread() {
