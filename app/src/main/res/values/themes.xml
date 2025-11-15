@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.EdgeViewer" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="android:colorPrimary">@color/purple_500</item>
-        <item name="android:colorPrimaryDark">@color/purple_700</item>
-        <item name="android:colorAccent">@color/teal_200</item>
-        <item name="android:statusBarColor" tools:targetApi="l">@android:color/black</item>
+        <item name="android:colorPrimary">@color/primary_blue</item>
+        <item name="android:colorPrimaryDark">@color/primary_blue_dark</item>
+        <item name="android:colorAccent">@color/accent_orange</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@android:color/transparent</item>
+        <item name="android:navigationBarColor" tools:targetApi="l">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds" tools:targetApi="l">true</item>
     </style>
 </resources>
 
