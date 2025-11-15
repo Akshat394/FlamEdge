@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.edgeviewer.app.camera.CameraController
 import android.opengl.GLSurfaceView
+import android.os.Build
 import com.edgeviewer.app.renderer.GLPreviewSurface
 import com.edgeviewer.app.renderer.PipelineRenderer
 import com.edgeviewer.app.util.FpsAverager
@@ -22,8 +23,13 @@ import com.edgeviewer.app.util.SaveUtils
 import com.edgeviewer.app.viewmodel.CameraViewModel
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
+import androidx.core.view.WindowCompat
+import android.view.WindowInsets
+import android.view.WindowInsetsController
+import android.content.res.ColorStateList
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.edgeviewer.app.net.HttpFrameServer
 
 class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
 
@@ -43,6 +49,7 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
     private var cameraController: CameraController? = null
     private var renderer: PipelineRenderer? = null
     private val fpsAverager = FpsAverager()
+    private var httpServer: HttpFrameServer? = null
 
     private var isNativeLoaded = false
     private var isDestroyed = false
@@ -62,12 +69,15 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
         super.onCreate(savedInstanceState)
         try {
             setContentView(R.layout.activity_main)
+            enterImmersiveMode()
             initializeViews()
             setupObservers()
             initializeNativeLibrary()
             initializeRenderer()
             initializeCameraController()
             setupClickListeners()
+            // Start lightweight HTTP server to serve latest frame
+            httpServer = HttpFrameServer(8080).also { it.start() }
         } catch (e: Exception) {
             Timber.e(e, "Critical error in onCreate")
             viewModel.setError("Failed to initialize app: ${e.message}")
@@ -160,6 +170,11 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
                 getString(R.string.raw_view)
             }
 
+            // Make toggle visually reflect the active mode
+            val processedTint = ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(this, R.color.primary_blue))
+            val rawTint = ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(this, R.color.button_background))
+            toggleButton.backgroundTintList = if (state.viewMode == com.edgeviewer.app.viewmodel.ViewMode.PROCESSED) processedTint else rawTint
+
             // Update filter button
             filterButton.text = when (state.filterMode) {
                 com.edgeviewer.app.viewmodel.FilterMode.NONE -> getString(R.string.filter_none)
@@ -182,13 +197,17 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
 
     private fun initializeNativeLibrary() {
         try {
-            NativeBridge.load()
-            isNativeLoaded = true
-            Timber.d("Native library loaded successfully")
+            isNativeLoaded = NativeBridge.load()
+            if (isNativeLoaded) {
+                Timber.d("Native library loaded successfully")
+            } else {
+                Timber.e("Native library not available; processed view disabled")
+                viewModel.setError("Native processing unavailable. Showing raw camera view.")
+            }
         } catch (e: Exception) {
             Timber.e(e, "Failed to load native library")
             isNativeLoaded = false
-            viewModel.setError("Native library not available. Edge detection may not work properly.")
+            viewModel.setError("Native processing unavailable. Showing raw camera view.")
         }
     }
 
@@ -204,9 +223,20 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
             }
             glSurface.setRenderer(renderer)
             glSurface.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
-            glSurface.visibility = View.VISIBLE
-            textureView.visibility = View.INVISIBLE
+            // Always start with raw view to ensure TextureView becomes available
+            renderer?.setShowProcessed(false)
+            // Connect renderer frames to HTTP server
+            renderer?.setFrameConsumer { rgba, w, h ->
+                httpServer?.updateRgbaFrame(rgba, w, h)
+            }
+            glSurface.visibility = View.INVISIBLE
+            textureView.visibility = View.VISIBLE
             textureView.surfaceTextureListener = this
+            // Normalize UI state to RAW at startup
+            val current = viewModel.appState.value
+            if (current?.viewMode == com.edgeviewer.app.viewmodel.ViewMode.PROCESSED) {
+                viewModel.toggleViewMode()
+            }
         } catch (e: Exception) {
             Timber.e(e, "Error initializing renderer")
             viewModel.setError("Failed to initialize renderer: ${e.message}")
@@ -267,8 +297,20 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
 
             filterButton.setOnClickListener {
                 try {
+                    // Cycle filter and ensure processed view is visible when native is available
                     viewModel.nextFilter()
                     renderer?.nextFilter()
+                    if (isNativeLoaded) {
+                        val current = viewModel.appState.value
+                        if (current?.viewMode != com.edgeviewer.app.viewmodel.ViewMode.PROCESSED) {
+                            viewModel.setViewMode(com.edgeviewer.app.viewmodel.ViewMode.PROCESSED)
+                            renderer?.setShowProcessed(true)
+                            glSurface.visibility = View.VISIBLE
+                            textureView.visibility = View.INVISIBLE
+                        }
+                    } else {
+                        showError("Processed view unavailable: native library not loaded.")
+                    }
                 } catch (e: Exception) {
                     Timber.e(e, "Error cycling filter")
                 }
@@ -282,6 +324,7 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
         super.onResume()
         try {
             isDestroyed = false
+            enterImmersiveMode()
             requestCameraPermission()
         } catch (e: Exception) {
             Timber.e(e, "Error in onResume")
@@ -306,6 +349,7 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
             cameraController?.stop()
             cameraController = null
             renderer = null
+            try { httpServer?.stop() } catch (_: Exception) {}
         } catch (e: Exception) {
             Timber.e(e, "Error in onDestroy")
         }
@@ -367,6 +411,13 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
     private fun toggleViewMode(wasProcessed: Boolean) {
         try {
             val newMode = !wasProcessed
+            // Prevent enabling processed view if native library isn't loaded
+            if (newMode && !isNativeLoaded) {
+                // Revert the ViewModel toggle since processed is unavailable
+                viewModel.toggleViewMode()
+                showError("Processed view unavailable: native library not loaded.")
+                return
+            }
             renderer?.setShowProcessed(newMode)
             glSurface.visibility = if (newMode) View.VISIBLE else View.INVISIBLE
             textureView.visibility = if (newMode) View.INVISIBLE else View.VISIBLE
@@ -404,6 +455,31 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
         } catch (e: Exception) {
             Timber.e(e, "Error exporting frame")
             viewModel.setProcessing(false)
+        }
+    }
+
+    private fun enterImmersiveMode() {
+        try {
+            // Make content draw behind system bars and enable immersive sticky behavior
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val controller = window.insetsController
+                controller?.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                controller?.systemBarsBehavior =
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            } else {
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = (
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                                View.SYSTEM_UI_FLAG_FULLSCREEN
+                        )
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to enter immersive mode")
         }
     }
 
