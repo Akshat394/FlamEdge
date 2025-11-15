@@ -118,6 +118,16 @@ Tip: Use `adb exec-out screencap -p > processed.png` or add a small export funct
 3. Convert MP4 to GIF with `ffmpeg -i docs/demo.mp4 -vf scale=360:-1 docs/demo.gif`.
 4. Capture stills via `adb exec-out screencap -p > docs/processed.png`.
 
+## Screenshots
+
+Embed your captured media here after placing files in `docs/`:
+
+```markdown
+![Processed Frame](docs/processed.png)
+
+![Demo GIF](docs/demo.gif)
+```
+
 ## Testing Checklist
 
 - [ ] Build succeeds on Android (Debug).
