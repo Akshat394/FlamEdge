@@ -86,11 +86,28 @@ Real-time Android edge detection pipeline powered by Camera2, JNI, OpenCV (C++),
 cd web
 npm install
 npm run build   # Compiles TS and copies static assets to dist/
-npm start       # Serves dist/ via http-server on http://localhost:8080
+npm start       # Serves dist/ via http-server (default http://localhost:8080)
 ```
 
-- Replace `web/src/assets/sampleFrame.ts` with a real `data:image/png;base64,` string captured from the Android app.
-- Update `metadata` inside `web/src/main.ts` (FPS, resolution) to match the captured frame.
+- Replace `web/src/assets/sampleFrame.ts` with a real `data:image/png;base64,` string captured from the Android app, or use the live device frame endpoint below.
+- Live frames: open the web viewer with a query param pointing to the Android device endpoint:
+  - `http://localhost:8080` device (ADB forward):
+    - `http://localhost:8080/?url=http://localhost:8080/frame`
+  - Device on same Wi‑Fi (example):
+    - `http://localhost:8080/?url=http://192.168.1.50:8080/frame`
+  - If the frame fails to load, the viewer gracefully shows a sample image and a hint to set `?url=`.
+
+### ADB port forward (optional)
+
+```bash
+adb forward tcp:8080 tcp:8080
+```
+
+Then open:
+
+```
+http://localhost:8080/?url=http://localhost:8080/frame
+```
 
 Tip: Use `adb exec-out screencap -p > processed.png` or add a small export function to save the current RGBA frame and convert it to base64 for the web.
 
@@ -108,6 +125,8 @@ Tip: Use `adb exec-out screencap -p > processed.png` or add a small export funct
 - [ ] Toggle between raw/processed works without tearing.
 - [ ] JNI library loads without `UnsatisfiedLinkError`.
 - [ ] Web viewer renders the static frame and metadata.
+- [ ] Web viewer displays live frames via `?url=http://<device-ip>:8080/frame` (or ADB forward).
+- [ ] HTTP frame server serves `GET /frame` with PNG and CORS/no-cache headers.
 
 ## Future Enhancements
 
@@ -115,6 +134,41 @@ Tip: Use `adb exec-out screencap -p > processed.png` or add a small export funct
 - CameraX integration with `ImageAnalysis` for simplified lifecycle handling.
 - WebSocket endpoint on the device to stream fresh frames to the web client.
 - GPU-accelerated shaders for additional effects (invert, threshold).
+
+## Architecture Overview
+
+Android (app module):
+
+- Camera capture: `CameraController` produces NV21 via `ImageReader`.
+- JNI bridge: `NativeBridge.processFrame` sends NV21 to C++.
+- Native C++: NV21 → grayscale → Canny → RGBA using OpenCV.
+- OpenGL renderer: `PipelineRenderer` uploads RGBA to texture and renders.
+- HTTP frame server: `HttpFrameServer` serves latest PNG at `/frame` with CORS/no-cache.
+- UI controls: toggle raw/processed, switch camera, apply filters, show FPS.
+
+Web (web module):
+
+- TypeScript viewer: polls `?url` endpoint every second; falls back to a sample image.
+- Minimal static site build with `tsc`; served via `http-server`.
+
+## Submission Prep
+
+1. Ensure meaningful, modular commits (no single “final commit”).
+2. Push the project to a public or shareable private GitHub/GitLab repo.
+3. Add screenshots/GIFs under `docs/` and reference them in this README.
+4. Verify Android build, native `.so` load, processed FPS ≥ 10–15, and live web frames.
+5. Fill the Flam Evaluation Form: `https://forms.gle/sBouUWUKxy7pf6mKA`.
+
+## Setup Notes
+
+- `local.properties` must include correct paths (Windows path escaping required):
+
+```
+sdk.dir=C\:\\Users\\<you>\\AppData\\Local\\Android\\Sdk
+OpenCV_DIR=E\:/opencv-android-sdk/OpenCV-android-sdk/sdk/native/jni
+```
+
+- Alternatively, set `OpenCV_DIR` via environment or Gradle CMake arguments.
 
 ## License
 
