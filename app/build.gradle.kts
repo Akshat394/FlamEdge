@@ -5,6 +5,9 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Use a separate build directory to avoid interference from stale locks in default paths
+buildDir = file("${rootProject.projectDir}/.build/app")
+
 // Read OpenCV_DIR from local.properties
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
