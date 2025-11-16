@@ -270,15 +270,7 @@ class PipelineRenderer(
                 }
             }
 
-            val now = System.nanoTime()
-            if (lastTimestamp != 0L) {
-                val timeDiff = now - lastTimestamp
-                if (timeDiff > 0) {
-                    val fps = 1e9 / timeDiff.toDouble()
-                    fpsUpdate(fps.coerceIn(0.0, 120.0)) // Cap FPS at reasonable value
-                }
-            }
-            lastTimestamp = now
+            // FPS was sampled above to ensure updates even when not rendering processed frames
 
             surfaceView.requestRender()
             framePending.set(false)
