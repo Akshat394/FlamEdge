@@ -17,6 +17,8 @@
 
 # VS Code / IntelliJ
 .vscode/
+!.vscode/c_cpp_properties.json
+!.vscode/settings.json
 *.swp
 
 # Node
