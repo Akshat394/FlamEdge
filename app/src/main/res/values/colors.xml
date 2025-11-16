@@ -35,5 +35,6 @@
     <color name="purple_500">#2196F3</color>
     <color name="purple_700">#1976D2</color>
     <color name="teal_200">#64B5F6</color>
+    <color name="flamedge_background">#FAFAFA</color>
 </resources>
 

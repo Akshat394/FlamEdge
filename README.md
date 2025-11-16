@@ -182,4 +182,5 @@ OpenCV_DIR=E\:/opencv-android-sdk/OpenCV-android-sdk/sdk/native/jni
 
 ## License
 
-MIT License – see `LICENSE` (add your preferred license file).
+Proprietary License © Akshat Trivedi – see `LICENSE`.
+Unauthorized copying, redistribution, or derivative works are prohibited.

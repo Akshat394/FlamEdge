@@ -16,15 +16,20 @@ add_library(edge_native SHARED
     processor.h
 )
 
-find_package(OpenCV REQUIRED COMPONENTS core imgproc)
-if(NOT OpenCV_FOUND)
-    message(FATAL_ERROR "OpenCV not found. Please set OpenCV_DIR to your OpenCV android sdk cmake directory, e.g.: <path>/OpenCV-android-sdk/sdk/native/jni/abi-arm64-v8a or similar")
+find_package(OpenCV COMPONENTS core imgproc)
+if(OpenCV_FOUND)
+    target_compile_definitions(edge_native PRIVATE HAS_OPENCV=1)
+else()
+    message(WARNING "OpenCV not found. Building with NO_OPENCV stub; native processing will be disabled.")
+    target_compile_definitions(edge_native PRIVATE NO_OPENCV=1)
 endif()
 
-target_include_directories(edge_native
-    PRIVATE
-        ${OpenCV_INCLUDE_DIRS}
-)
+if(OpenCV_FOUND)
+    target_include_directories(edge_native
+        PRIVATE
+            ${OpenCV_INCLUDE_DIRS}
+    )
+endif()
 
 target_link_libraries(edge_native
     ${OpenCV_LIBS}
