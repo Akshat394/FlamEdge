@@ -6,6 +6,7 @@
 /.cxx
 /app/build
 /build
+/\.build
 /app/.cxx/
 !/app/src/main/java/com/edgeviewer/app/viewmodel/**
 
