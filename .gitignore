@@ -7,7 +7,7 @@
 /app/build
 /build
 /app/.cxx/
-/app/src/main/java/com/edgeviewer/app/viewmodel/
+!/app/src/main/java/com/edgeviewer/app/viewmodel/**
 
 # Gradle
 .gradle/
