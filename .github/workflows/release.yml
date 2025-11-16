@@ -25,6 +25,17 @@ jobs:
       - name: Grant execute permission for Gradle
         run: chmod +x ./gradlew
 
+      - name: Download OpenCV Android SDK
+        run: |
+          curl -L -o opencv-android-sdk.zip https://github.com/opencv/opencv/releases/download/4.9.0/opencv-4.9.0-android-sdk.zip
+          mkdir -p opencv-android-sdk
+          unzip -q opencv-android-sdk.zip -d opencv-android-sdk
+
+      - name: Configure local.properties
+        run: |
+          echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
+          echo "OpenCV_DIR=${GITHUB_WORKSPACE}/opencv-android-sdk/OpenCV-android-sdk/sdk/native/jni" >> local.properties
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
