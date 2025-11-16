@@ -120,13 +120,15 @@ Tip: Use `adb exec-out screencap -p > processed.png` or add a small export funct
 
 ## Screenshots
 
-Embed your captured media here after placing files in `docs/`:
+![App Demo](docs/App_Demo.gif)
 
-```markdown
-![Processed Frame](docs/processed.png)
-
-![Demo GIF](docs/demo.gif)
-```
+- Raw camera feed: `docs/Raw_Camera_Feed.png` — unprocessed Camera2 preview for reference.
+- Default edge detection: `docs/Edge_Detection_No_Filter.png` — Canny edges rendered via OpenGL.
+- Threshold mode: `docs/Edge_Detection_Threshold_Mode.png` — binary thresholding of edge output.
+- Inversion mode: `docs/Edge_Detection_Inversion_Mode.png` — inverted colors for edge visualization.
+- Front camera edges: `docs/FRont_Camera_Edge_Detection.png` — processed edges using front camera.
+- Front camera inverted: `docs/FRont_Camera_Edge_Detection_Inverted.png` — inverted edge visualization on front camera.
+- Saved frame (rear/front): `docs/Frame_Saved_into_Gallery.png`, `docs/FRont_Camera_Frame_Saved_to_Gallery.png` — confirms exported frames in device gallery.
 
 ## Testing Checklist
 
