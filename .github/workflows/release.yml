@@ -56,6 +56,6 @@ permissions:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release/FlamEdge_v1.apk
+            release/FlamEdge_${{ github.ref_name }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
