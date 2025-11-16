@@ -122,13 +122,29 @@ Tip: Use `adb exec-out screencap -p > processed.png` or add a small export funct
 
 ![App Demo](docs/App_Demo.gif)
 
-- Raw camera feed: `docs/Raw_Camera_Feed.png` — unprocessed Camera2 preview for reference.
-- Default edge detection: `docs/Edge_Detection_No_Filter.png` — Canny edges rendered via OpenGL.
-- Threshold mode: `docs/Edge_Detection_Threshold_Mode.png` — binary thresholding of edge output.
-- Inversion mode: `docs/Edge_Detection_Inversion_Mode.png` — inverted colors for edge visualization.
-- Front camera edges: `docs/FRont_Camera_Edge_Detection.png` — processed edges using front camera.
-- Front camera inverted: `docs/FRont_Camera_Edge_Detection_Inverted.png` — inverted edge visualization on front camera.
-- Saved frame (rear/front): `docs/Frame_Saved_into_Gallery.png`, `docs/FRont_Camera_Frame_Saved_to_Gallery.png` — confirms exported frames in device gallery.
+![Raw Camera Feed](docs/Raw_Camera_Feed.png)
+Raw camera feed — unprocessed Camera2 preview for reference.
+
+![Edge Detection (No Filter)](docs/Edge_Detection_No_Filter.png)
+Default edge detection — Canny edges rendered via OpenGL.
+
+![Edge Detection (Threshold Mode)](docs/Edge_Detection_Threshold_Mode.png)
+Threshold mode — binary thresholding of edge output.
+
+![Edge Detection (Inversion Mode)](docs/Edge_Detection_Inversion_Mode.png)
+Inversion mode — inverted colors for edge visualization.
+
+![Front Camera Edge Detection](docs/FRont_Camera_Edge_Detection.png)
+Front camera edges — processed edges using front camera.
+
+![Front Camera Edge Detection (Inverted)](docs/FRont_Camera_Edge_Detection_Inverted.png)
+Front camera inverted — inverted edge visualization on front camera.
+
+![Frame Saved to Gallery (Rear/Front)](docs/Frame_Saved_into_Gallery.png)
+Saved frame — confirms exported frame in device gallery (rear camera).
+
+![Front Camera Frame Saved to Gallery](docs/FRont_Camera_Frame_Saved_to_Gallery.png)
+Saved frame — confirms exported frame in device gallery (front camera).
 
 ## Testing Checklist
 
