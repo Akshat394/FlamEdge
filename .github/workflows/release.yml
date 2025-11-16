@@ -65,6 +65,9 @@ jobs:
           BUILD_TOOLS="$ANDROID_SDK_ROOT/build-tools/35.0.0"
           "$BUILD_TOOLS/zipalign" -v -p 4 .build/app/outputs/apk/release/app-release-unsigned.apk app-release-aligned.apk
 
+      - name: Prepare release directory
+        run: mkdir -p release
+
       - name: Generate ephemeral release keystore
         run: |
           keytool -genkeypair -v -keystore release.jks -storepass android -keypass android -alias release \
