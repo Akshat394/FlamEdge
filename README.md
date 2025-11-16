@@ -184,3 +184,7 @@ OpenCV_DIR=E\:/opencv-android-sdk/OpenCV-android-sdk/sdk/native/jni
 
 Proprietary License © Akshat Trivedi – see `LICENSE`.
 Unauthorized copying, redistribution, or derivative works are prohibited.
+
+## Ownership & Attribution
+
+This work is owned by Akshat Trivedi. Any use or reference must attribute the work to "Akshat Trivedi". See `NOTICE` for details.
