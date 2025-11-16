@@ -161,14 +161,6 @@ Web (web module):
 - TypeScript viewer: polls `?url` endpoint every second; falls back to a sample image.
 - Minimal static site build with `tsc`; served via `http-server`.
 
-## Submission Prep
-
-1. Ensure meaningful, modular commits (no single “final commit”).
-2. Push the project to a public or shareable private GitHub/GitLab repo.
-3. Add screenshots/GIFs under `docs/` and reference them in this README.
-4. Verify Android build, native `.so` load, processed FPS ≥ 10–15, and live web frames.
-5. Fill the Flam Evaluation Form: `https://forms.gle/sBouUWUKxy7pf6mKA`.
-
 ## Setup Notes
 
 - `local.properties` must include correct paths (Windows path escaping required):
