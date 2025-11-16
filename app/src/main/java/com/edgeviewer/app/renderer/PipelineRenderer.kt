@@ -191,6 +191,15 @@ class PipelineRenderer(
 
     override fun onFrameAvailable(data: ByteBuffer, width: Int, height: Int) {
         try {
+            val now = System.nanoTime()
+            if (lastTimestamp != 0L) {
+                val timeDiff = now - lastTimestamp
+                if (timeDiff > 0) {
+                    val fps = 1e9 / timeDiff.toDouble()
+                    fpsUpdate(fps.coerceIn(0.0, 120.0))
+                }
+            }
+            lastTimestamp = now
             if (!showProcessed.get()) {
                 return
             }

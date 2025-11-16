@@ -50,7 +50,6 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
     private var renderer: PipelineRenderer? = null
     private val fpsAverager = FpsAverager()
     private var httpServer: HttpFrameServer? = null
-    private var didAutoEnableProcessed = false
 
     private var isNativeLoaded = false
     private var isDestroyed = false
@@ -396,13 +395,6 @@ class MainActivity : ComponentActivity(), TextureView.SurfaceTextureListener {
                 cameraController?.start(textureView)
                 // Camera started successfully - state will be updated when running
                 viewModel.updateCameraState(com.edgeviewer.app.viewmodel.CameraState.RUNNING)
-                if (isNativeLoaded && !didAutoEnableProcessed) {
-                    renderer?.setShowProcessed(true)
-                    glSurface.visibility = View.VISIBLE
-                    textureView.visibility = View.INVISIBLE
-                    viewModel.setViewMode(com.edgeviewer.app.viewmodel.ViewMode.PROCESSED)
-                    didAutoEnableProcessed = true
-                }
             } catch (e: IllegalStateException) {
                 // Camera start failed - handle gracefully
                 Timber.e(e, "Camera start failed")
