@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/microsoft/vscode-cpptools/main/Schema/c_cpp_properties.schema.json",
   "configurations": [
     {
       "name": "Windows-NDK-OpenCV",
