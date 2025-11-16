@@ -9,7 +9,7 @@ on:
 permissions:
   contents: write
 
-jobs:
+  jobs:
   build-release:
     runs-on: ubuntu-latest
     steps:
@@ -25,6 +25,14 @@ jobs:
       - name: Grant execute permission for Gradle
         run: chmod +x ./gradlew
 
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Install required Android packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "cmake;3.22.1" "ndk;25.1.8937393"
+
       - name: Download OpenCV Android SDK
         run: |
           curl -L -o opencv-android-sdk.zip https://github.com/opencv/opencv/releases/download/4.9.0/opencv-4.9.0-android-sdk.zip
@@ -36,13 +44,13 @@ jobs:
           echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
           echo "OpenCV_DIR=${GITHUB_WORKSPACE}/opencv-android-sdk/OpenCV-android-sdk/sdk/native/jni" >> local.properties
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace
 
-      - name: Rename APK
+      - name: Collect APK artifact
         run: |
           mkdir -p release
-          cp app/build/outputs/apk/debug/app-debug.apk release/FlamEdge_v1.apk
+          cp .build/app/outputs/apk/release/app-release-unsigned.apk "release/FlamEdge_${{ github.ref_name }}.apk"
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
