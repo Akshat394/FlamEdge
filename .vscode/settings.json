@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    "*.hpp": "cpp",
+    "*.h": "cpp"
+  },
+  "C_Cpp.default.configurationProvider": "ms-vscode.cpptools",
+  "C_Cpp.errorSquiggles": "Enabled"
+}
