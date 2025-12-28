@@ -26,6 +26,27 @@ Real-time Android edge detection pipeline powered by Camera2, JNI, OpenCV (C++),
 └── README.md
 ```
 
+### System Overview
+
+```mermaid
+graph TB
+    A[Android Camera] -->|YUV Frames| B[CameraX API]
+    B -->|ImageProxy| C[MainActivity.kt]
+    C -->|Mat Address| D[JNI Bridge]
+    D -->|Native Call| E[native-lib.cpp]
+    E -->|OpenCV| F{Processing Mode}
+    F -->|RAW| G[Passthrough]
+    F -->|EDGE| H[Canny Detection]
+    G --> I[Processed Mat]
+    H --> I
+    I --> J[CVGLRenderer]
+    J -->|Texture| K[GLSurfaceView]
+    I -->|JPEG Encode| L[WebSocket Client]
+    L -->|Network| M[Web Server]
+    M -->|Canvas| N[Browser Display]
+
+```
+
 ## Android Setup
 
 ### Prerequisites
